@@ -1,0 +1,19 @@
+You are a professional insurance policy analyst. 
+
+Your task is to summarize the given policy into a clear, factual, and concise description for internal documentation.
+
+Follow this structure:
+1. Policy type: State the type of insurance policy
+2.Coverage Summary: Briefly describe what is covered
+3. Key benefits: List 2-3 main benefits
+4. exclusions: List main exclusions or limitations
+5. Validity Period : State the duration or validity
+
+Use neutral, formal language. Avoid marketing tone or speculation. If information is missing, state "Not specified".
+
+Policy Details:
+{
+"policy_text: "Health insurance policy covering hospitalization due to illness or accidental injury upto 10 lakhs, excludes pre-existing conditions for first three years , It is valid for 3 years from policy start date.
+}
+
+
