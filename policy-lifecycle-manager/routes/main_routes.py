@@ -65,5 +65,36 @@ def describe():
     })
 
 
+@main.route('/recommend', methods=['POST'])
+def recommend():
+    data = request.get_json(force=True)
+
+    policy_input = data.get("policy_input", "")
+
+    # For now, return static recommendations (safe + acceptable)
+    recommendations = [
+        {
+            "action_type": "Review Coverage",
+            "description": "Check if the coverage amount is sufficient for current needs.",
+            "priority": "High"
+        },
+        {
+            "action_type": "Check Exclusions",
+            "description": "Review policy exclusions to avoid unexpected claim rejections.",
+            "priority": "Medium"
+        },
+        {
+            "action_type": "Renewal Reminder",
+            "description": "Ensure timely renewal to avoid policy lapse.",
+            "priority": "Low"
+        }
+    ]
+
+    return jsonify({
+        "recommendations": recommendations,
+        "generated_at": datetime.utcnow().isoformat()
+    })
+
+
 
 
