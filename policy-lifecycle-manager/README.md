@@ -29,3 +29,16 @@ curl -X POST "http://127.0.0.1:8000/policy/description" \
 -d "{\"description\": \"I want child education insurance for my daughter\"}"
 Example response
 {"policy_type": "Child", "description": "I want child education insurance for my daughter"}
+
+---
+
+## Tasks Completed (22-23 April)
+- Removed hardcoded Groq API key from `main_routes.py`
+- Cleaned git history using `git filter-repo` to remove the leaked key
+- Added `.env` for secure API key storage and updated `.gitignore`
+- Implemented environment variable loading with `os.getenv("GROQ_API_KEY")`
+
+## Setup Instructions
+1. Create a `.env` file in `policy-lifecycle-manager` with: `GROQ_API_KEY=your_key_here`
+2. Install dependencies: `pip install -r requirements.txt`
+3. Run the app: `uvicorn main:app --reload`
