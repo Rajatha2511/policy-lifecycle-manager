@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from datetime import datetime
 from groq import Groq
 import os
+from services.rag_pipeline import rag_pipeline
 
 # Create Blueprint
 main = Blueprint('main', __name__)
@@ -94,6 +95,111 @@ def recommend():
         "recommendations": recommendations,
         "generated_at": datetime.utcnow().isoformat()
     })
+
+
+# RAG Pipeline Routes
+
+@main.route('/rag/load-documents', methods=['POST'])
+def load_documents():
+    """Load documents into the RAG system"""
+    data = request.get_json(force=True)
+
+    documents = data.get("documents", [])
+    file_paths = data.get("file_paths", [])
+
+    try:
+        if documents:
+            rag_pipeline.load_documents_from_texts(documents)
+        elif file_paths:
+            rag_pipeline.load_documents_from_files(file_paths)
+        else:
+            return jsonify({"error": "Either 'documents' or 'file_paths' must be provided"}), 400
+
+        # Save the vectorstore for persistence
+        rag_pipeline.save_vectorstore()
+
+        return jsonify({
+            "message": "Documents loaded successfully",
+            "loaded_at": datetime.utcnow().isoformat()
+        })
+
+    except Exception as e:
+        return jsonify({"error": f"Failed to load documents: {str(e)}"}), 500
+
+
+@main.route('/rag/query', methods=['POST'])
+def rag_query():
+    """Query the RAG system"""
+    data = request.get_json(force=True)
+
+    question = data.get("question", "")
+    if not question:
+        return jsonify({"error": "Question is required"}), 400
+
+    try:
+        # Load vectorstore if not already loaded
+        if not rag_pipeline.vectorstore:
+            rag_pipeline.load_vectorstore()
+
+        answer = rag_pipeline.query(question)
+
+        return jsonify({
+            "question": question,
+            "answer": answer,
+            "generated_at": datetime.utcnow().isoformat()
+        })
+
+    except Exception as e:
+        return jsonify({"error": f"RAG query failed: {str(e)}"}), 500
+
+
+@main.route('/rag/recommend', methods=['POST'])
+def rag_recommend():
+    """Get policy recommendations using RAG"""
+    data = request.get_json(force=True)
+
+    policy_input = data.get("policy_input", "")
+    if not policy_input:
+        return jsonify({"error": "policy_input is required"}), 400
+
+    try:
+        # Load vectorstore if not already loaded
+        if not rag_pipeline.vectorstore:
+            rag_pipeline.load_vectorstore()
+
+        # Get relevant documents
+        relevant_docs = rag_pipeline.get_relevant_documents(
+            f"Provide recommendations for this policy: {policy_input}",
+            k=2
+        )
+
+        # Generate recommendations using RAG
+        prompt = f"""
+        Based on the following policy information and similar policies, provide 3-5 specific recommendations for policy management:
+
+        Policy to analyze: {policy_input}
+
+        Reference policies:
+        {" ".join(relevant_docs[:2])}
+
+        Provide recommendations in JSON format with fields: action_type, description, priority (High/Medium/Low)
+        """
+
+        response = client.chat.completions.create(
+            model="llama-3.1-8b-instant",
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        recommendations_text = response.choices[0].message.content
+
+        # For now, return the raw response (you might want to parse JSON)
+        return jsonify({
+            "recommendations": recommendations_text,
+            "generated_at": datetime.utcnow().isoformat()
+        })
+
+    except Exception as e:
+        return jsonify({"error": f"RAG recommendations failed: {str(e)}"}), 500
 
 
 
