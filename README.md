@@ -87,6 +87,9 @@ curl -X POST "http://127.0.0.1:5000/rag/recommend" \
 -H "Content-Type: application/json" \
 -d '{"policy_input": "Health insurance covering hospitalization up to 5 lakhs"}'
 ```
+POST /generate-report
+Input: {"query": "your policy question"}
+Output: JSON with title, executive_summary, overview, top_items, recommendations.
 
 ## Project Structure
 
