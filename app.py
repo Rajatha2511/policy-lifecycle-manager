@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+import os
+load_dotenv()
 from flask import Flask
 from routes.main_routes import main
 
@@ -11,4 +14,5 @@ def home():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
 

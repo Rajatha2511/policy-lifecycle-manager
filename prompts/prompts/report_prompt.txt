@@ -1,0 +1,18 @@
+prompt = f"""
+Generate a report in STRICT JSON format.
+
+DO NOT return text, DO NOT use markdown.
+
+Return ONLY valid JSON like this:
+
+{{
+    "title": "...",
+    "executive_summary": "...",
+    "overview": "...",
+    "top_items": ["...", "..."],
+    "recommendations": ["...", "..."]
+}}
+
+Input:
+{input_text}
+"""
