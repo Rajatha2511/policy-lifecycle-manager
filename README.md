@@ -102,6 +102,7 @@ policy-lifecycle-manager/
 │   └── vehicle_policy_1.txt
 ├── prompts/              # Prompt templates
 │   └── describe_prompt.txt
+|   |__ report_prompt.txt
 ├── routes/               # Flask routes
 │   └── main_routes.py
 └── services/             # Business logic
@@ -214,6 +215,7 @@ Content-Type: application/json
 - `routes/main_routes.py`: API endpoints for RAG functionality
 - `data/`: Sample policy documents
 - Vectorstore persistence: `vectorstore.pkl`
+
 
 
    
