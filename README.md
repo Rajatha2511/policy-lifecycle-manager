@@ -1,40 +1,36 @@
 # Policy Lifecycle Manager
 
-A Flask-based AI application for analyzing insurance policies with both direct LLM queries and a RAG (Retrieval-Augmented Generation) pipeline for enhanced context-aware responses.
+A full-stack AI application for analyzing insurance policies using RAG. Flask backend powered by Groq LLM + LangChain, with a React + Vite frontend for interactive policy analysis.
 
-## Features
-
-### Core Functionality
-- **Policy Description**: Extract structured information from policy descriptions using Groq LLM
-- **Policy Recommendations**: Generate actionable recommendations for policy management
-- **RAG Pipeline**: Context-aware Q&A system using document retrieval and generation
-
-### RAG Pipeline Features
-- Document loading from text files or direct text input
-- Vector storage using FAISS and HuggingFace embeddings
-- Semantic search and retrieval
-- Persistent vectorstore with save/load functionality
-- Modern LangChain LCEL implementation
+## Tech Stack
+**Backend**: Flask, Python 3.14, LangChain LCEL, Groq LLM, ChromaDB  
+**Frontend**: React, Vite, JavaScript  
+**Features**: RAG Pipeline, Policy Recommendations, Document Analysis, Gap Detection
 
 ## Setup
 
-1. **Install Dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
+### Prerequisites
+- Python 3.14+
+- Node.js 18+
+- Groq API Key
 
-2. **Environment Configuration**:
-   ```bash
-   cp .env.example .env
-   # Edit .env and add your Groq API key:
-   GROQ_API_KEY=your_groq_api_key_here
-   API_KEY=your_groq_api_key_here
-   ```
+### 1. Backend Setup
+```bash
+git clone <your-repo-url>
+cd policy-lifecycle-manager
+pip install -r requirements.txt
+cp .env.example .env
 
-3. **Run the Application**:
-   ```bash
-   python app.py
-   ```
+# Add your GROQ_API_KEY to .env
+GROQ_API_KEY=your_groq_api_key_here
+
+2. Frontend Setup
+npm install
+npm run dev # Runs on http://localhost:5173
+   
+
+4. **Run the Application**:
+   python app.py          # Runs on http://127.0.0.1:5000
 
 ## API Endpoints
 
@@ -42,19 +38,16 @@ A Flask-based AI application for analyzing insurance policies with both direct L
 
 #### POST /describe
 Analyze and describe a policy from text input.
-```bash
 curl -X POST "http://127.0.0.1:5000/describe" \
 -H "Content-Type: application/json" \
 -d '{"policy_input": "Health insurance policy covering hospitalization up to 10 lakhs"}'
-```
 
 #### POST /recommend
 Get basic policy recommendations.
-```bash
 curl -X POST "http://127.0.0.1:5000/recommend" \
 -H "Content-Type: application/json" \
 -d '{"policy_input": "Health insurance policy for a family"}'
-```
+
 
 ### RAG Pipeline Endpoints
 
@@ -93,26 +86,27 @@ Output: JSON with title, executive_summary, overview, top_items, recommendations
 
 ## Project Structure
 
-```
 policy-lifecycle-manager/
-├── app.py                 # Flask application entry point
-├── requirements.txt       # Python dependencies
-├── .env.example          # Environment variables template
-├── README.md             # This file
-├── data/                 # Sample policy documents
-│   ├── health_policy_1.txt
-│   ├── life_policy_1.txt
-│   └── vehicle_policy_1.txt
-├── prompts/              # Prompt templates
-│   └── describe_prompt.txt
-|   |__ report_prompt.txt
-├── routes/               # Flask routes
+├── app.py                  # Flask application entry point
+├── requirements.txt        # Python dependencies
+├── package.json            # Node dependencies for frontend
+├── vite.config.js          # Vite configuration
+├── index.html              # Frontend HTML entry
+├── .env.example            # Environment variables template
+├── assets/                 # React frontend source
+│   ├── app.jsx             # Main React component
+│   ├── app.css             # App styles
+│   ├── index.css           # Global styles
+│   └── main.jsx            # React entry point
+├── data/                   # Sample policy documents
+├── prompts/                # LLM prompt templates
+├── routes/                 # Flask API routes
 │   └── main_routes.py
 └── services/             # Business logic
     └── rag_pipeline.py
 ```
-## Security
 
+## Security
 - API keys stored in `.env` file (not committed to git)
 - `.env` added to `.gitignore`
 - Input validation on all endpoints
