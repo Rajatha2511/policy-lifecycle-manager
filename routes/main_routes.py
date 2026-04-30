@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, Response, stream_with_context
 from datetime import datetime
 from groq import Groq
 import os
@@ -9,64 +9,31 @@ main = Blueprint('main', __name__)
 @main.route('/generate-report', methods=['POST'])
 def generate_report():
     data = request.get_json()
-    input_text = data.get("text", "")
-
-    if not input_text:
-        return jsonify({"error": "No input text provided"}), 400
-
-    prompt = f"""
-    You are a JSON generator.
-
-    Return ONLY valid JSON.
-    Do NOT include explanations, markdown, or extra text.
-
-    Format:
-    {{
-        "title": "string",
-        "executive_summary": "string",
-        "overview": "string",
-        "top_items": ["string", "string"],
-        "recommendations": ["string", "string"]
-    }}
-
-    Input:
-    {input_text}
-    """
-
-    try:
-        client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-
-        response = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=[{"role": "user", "content": prompt}]
-        )
-
-        output = response.choices[0].message.content.strip()
-
+    text = data.get("text")
+    
+    if not text:
+        return Response(
+            f"data: {json.dumps({'error': 'No text provided'})}\n\n",
+            mimetype='text/event-stream'
+        ), 400
+    
+    client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+    
+    def stream_tokens():
         try:
-            # Try parsing JSON
-            report_json = json.loads(output)
-        except:
-            # Fallback if model returns text
-            report_json = {
-                "title": "Generated Report",
-                "executive_summary": output,
-                "overview": output,
-                "top_items": [],
-                "recommendations": []
-            }
+            stream = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{"role": "user", "content": f"Summarize this insurance policy: {text}"}],
+                stream=True
+            )
+            for chunk in stream:
+                content = chunk.choices[0].delta.content
+                if content:
+                    yield f"data: {json.dumps({'token': content})}\n\n"
+            yield f"data: {json.dumps({'done': True})}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'error': str(e)})}\n\n"
+    
+    return Response(stream_with_context(stream_tokens()), mimetype='text/event-stream')
 
-        return jsonify({
-            "generated_at": datetime.utcnow().isoformat(),
-            "report": {
-                "title": report_json.get("title"), 
-                 "executive_summary": report_json.get("executive_summary", ""),
-                "overview": report_json.get("overview", ""),
-                "top_items": report_json.get("top_items", []),
-                "recommendations": report_json.get("recommendations", [])
-            }
-        })
-
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
+    
