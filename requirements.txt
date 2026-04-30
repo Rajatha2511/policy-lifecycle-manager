@@ -10,7 +10,7 @@ groq
 langchain
 langchain-community
 langchain-groq
-faiss-cpu
+chromadb=1.0.8
 sentence-transformers
 python-dotenv
 
