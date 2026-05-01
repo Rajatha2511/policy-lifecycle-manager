@@ -1,13 +1,16 @@
-import time  # <-- import the whole module
+import time
 from flask import Flask, Response, stream_with_context
 from flask_cors import CORS
 from dotenv import load_dotenv
 import os
+from routes.main_routes import main # <- Add this import
 
 load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
+
+app.register_blueprint(main)  # <- Add this line to register your routes
 
 @app.route('/')
 def home():
@@ -23,9 +26,10 @@ def stream():
         
         for word in text.split():
             yield word + " "
-            time.sleep(0.01)  # 0.01 = fast, 0.05 = slow, delete this line = instant
+            time.sleep(0.01)
 
     return Response(stream_with_context(generate()), mimetype='text/plain')
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
+
