@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, Response, stream_with_context
-from datetime import datetime
+from datetime import datetime,timezone
 from groq import Groq
 import os
 import json
@@ -95,7 +95,7 @@ def analyse_document():
         result = json.loads(completion.choices[0].message.content)
         
         response = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "document_length": len(text),
             "findings": result.get('findings', []),
             "document_summary": result.get('summary', '')
@@ -107,3 +107,5 @@ def analyse_document():
         return jsonify({"error": "LLM returned invalid JSON"}), 500
     except Exception as e:
         return jsonify({"error": f"Analysis failed: {str(e)}"}), 500
+
+
