@@ -30,7 +30,7 @@ class RAGPipeline:
         """Load documents from a list of text strings"""
         docs = [Document(page_content=t) for t in texts]
         split_docs = self.text_splitter.split_documents(docs)
-        self.vectorstore =Chroma.from_documents(split_docs, self.embeddings)
+        self.vectorstore = Chroma.from_documents(split_docs, self.embeddings)
 
     def load_documents_from_files(self, file_paths: list[str]):
         """Load documents from text files"""
