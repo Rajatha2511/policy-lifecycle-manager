@@ -1,3 +1,4 @@
+import time
 from flask import Blueprint, request, jsonify, Response, stream_with_context
 from datetime import datetime,timezone
 from groq import Groq
@@ -107,5 +108,69 @@ def analyse_document():
         return jsonify({"error": "LLM returned invalid JSON"}), 500
     except Exception as e:
         return jsonify({"error": f"Analysis failed: {str(e)}"}), 500
+
+@main.route('/batch-process', methods=['POST'])
+def batch_process():
+    try:
+        data = request.get_json()
+        items = data.get("items", [])
+
+        # Validate items exists and is a list
+        if not items or not isinstance(items, list):
+            return jsonify({"error": "No items provided"}), 400
+
+        # Validate max 20 items
+        if len(items) > 20:
+            return jsonify({"error": "Maximum 20 items allowed"}), 400
+
+        client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+        results = []
+
+        for index, item in enumerate(items):
+            # 100ms delay between each item
+            import time
+            time.sleep(0.1)
+
+            try:
+                if not item or not isinstance(item, str) or not item.strip():
+                    results.append({
+                        "index": index,
+                        "status": "error",
+                        "error": "Empty or invalid item"
+                    })
+                    continue
+
+                completion = client.chat.completions.create(
+                    model="llama-3.3-70b-versatile",
+                    messages=[{"role": "user", "content": f"Summarize this insurance policy in one sentence: {item}"}],
+                    temperature=0.2
+                )
+
+                result_text = completion.choices[0].message.content
+
+                results.append({
+                    "index": index,
+                    "status": "success",
+                    "result": result_text
+                })
+
+            except Exception as e:
+                results.append({
+                    "index": index,
+                    "status": "error",
+                    "error": str(e)
+                })
+
+        return jsonify({
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "total": len(items),
+            "results": results
+        }), 200
+
+    except Exception as e:
+        return jsonify({"error": f"Batch processing failed: {str(e)}"}), 500
+
+
+
 
 
