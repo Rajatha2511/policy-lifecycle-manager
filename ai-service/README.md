@@ -277,8 +277,6 @@ Processes up to 20 policy items in a single request. Each item is processed with
 ---
 
 ## Project Structure
-
-```
 policy-lifecycle-manager/
 ├── app.py                  # Flask application entry point
 ├── requirements.txt        # Python dependencies
@@ -286,6 +284,8 @@ policy-lifecycle-manager/
 ├── models.py               # SQLAlchemy database models
 ├── test_routes.py          # Pytest unit tests (15 tests)
 ├── .env.example            # Environment variables template
+├── ai-service/
+│   └── README.md           # AI service documentation
 ├── routes/
 │   └── main_routes.py      # Flask API route handlers
 ├── services/
@@ -293,7 +293,6 @@ policy-lifecycle-manager/
 ├── prompts/                # LLM prompt templates
 ├── data/                   # Sample policy documents
 └── assets/                 # React frontend source
-```
 
 ---
 
@@ -321,3 +320,4 @@ data: {"error": "Human readable error message"}
 - `.env` is listed in `.gitignore`
 - Input validation is applied on all endpoints
 - Error messages avoid leaking internal implementation details
+
