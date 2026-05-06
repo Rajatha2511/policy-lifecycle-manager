@@ -1,27 +1,40 @@
 import time
+import redis
+import hashlib
 from flask import Blueprint, request, jsonify, Response, stream_with_context
-from datetime import datetime,timezone
+from datetime import datetime, timezone
 from groq import Groq
 import os
 import json
-from dotenv import load_dotenv  # <- Add this
+from dotenv import load_dotenv
+
 load_dotenv()
 
 main = Blueprint('main', __name__)
+
+# Redis cache setup - connects once at startup
+try:
+    cache = redis.Redis(host='localhost', port=6379, db=1, decode_responses=True)
+    cache.ping()
+    print("✅ Redis cache connected")
+except Exception:
+    cache = None
+    print("⚠️ Redis cache unavailable - running without cache")
+
 
 @main.route('/generate-report', methods=['POST'])
 def generate_report():
     data = request.get_json()
     text = data.get("text")
-    
+
     if not text:
         return Response(
             f"data: {json.dumps({'error': 'No text provided'})}\n\n",
             mimetype='text/event-stream'
         ), 400
-    
+
     client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-    
+
     def stream_tokens():
         try:
             stream = client.chat.completions.create(
@@ -36,8 +49,10 @@ def generate_report():
             yield f"data: {json.dumps({'done': True})}\n\n"
         except Exception as e:
             yield f"data: {json.dumps({'error': str(e)})}\n\n"
-    
+
     return Response(stream_with_context(stream_tokens()), mimetype='text/event-stream')
+
+
 @main.route('/analyse-document', methods=['POST'])
 def analyse_document():
     try:
@@ -46,68 +61,69 @@ def analyse_document():
 
         if not text:
             return jsonify({"error": "No text provided"}), 400
-        
+
         if len(text) < 50:
             return jsonify({"error": "Text too short. Minimum 50 characters"}), 400
 
+        # Check Redis cache first
+        cache_key = f"analyse:{hashlib.md5(text.encode()).hexdigest()}"
+        if cache:
+            cached = cache.get(cache_key)
+            if cached:
+                print(f"Cache hit for key: {cache_key}")
+                return jsonify(json.loads(cached)), 200
+
         client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-        
-        prompt = f"""
-        You are a policy document analyst. Analyze the following text and extract key insights and risks.
-        
-        Document:
-        {text}
-        
-        Return ONLY valid JSON in this exact format:
+
+        # Reduced prompt length for faster processing
+        prompt = f"""Analyze this policy document and return ONLY valid JSON:
+
+Document: {text}
+
+Return this exact format:
+{{
+    "summary": "1-2 sentence summary",
+    "findings": [
         {{
-            "summary": "1-2 sentence summary of the document",
-            "findings": [
-                {{
-                    "type": "insight",
-                    "severity": "low",
-                    "title": "Clear title",
-                    "description": "What this insight means",
-                    "source_text": "Relevant quote from document"
-                }},
-                {{
-                    "type": "risk", 
-                    "severity": "high",
-                    "title": "Risk title",
-                    "description": "Why this is a risk",
-                    "source_text": "Relevant quote from document"
-                }}
-            ]
+            "type": "insight or risk",
+            "severity": "low/medium/high",
+            "title": "title",
+            "description": "description",
+            "source_text": "quote under 20 words"
         }}
-        
-        Rules:
-        1. Identify 2-4 total findings. Mix insights and risks.
-        2. Severity: low, medium, high
-        3. source_text must be a direct quote <20 words from the document
-        4. Return ONLY JSON, no other text
-        """
+    ]
+}}
+
+Rules: 2-4 findings, mix insights and risks, return ONLY JSON."""
 
         completion = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.2, # Lower temp for structured output
-            response_format={"type": "json_object"} # Groq supports JSON mode
+            temperature=0.2,
+            response_format={"type": "json_object"}
         )
-        
+
         result = json.loads(completion.choices[0].message.content)
-        
+
         response = {
             "timestamp": datetime.now(timezone.utc).isoformat(),
             "document_length": len(text),
             "findings": result.get('findings', []),
             "document_summary": result.get('summary', '')
         }
-        
+
+        # Save to Redis cache for 1 hour
+        if cache:
+            cache.set(cache_key, json.dumps(response), ex=3600)
+            print(f"Cached result for key: {cache_key}")
+
         return jsonify(response), 200
 
     except json.JSONDecodeError:
         return jsonify({"error": "LLM returned invalid JSON"}), 500
     except Exception as e:
         return jsonify({"error": f"Analysis failed: {str(e)}"}), 500
+
 
 @main.route('/batch-process', methods=['POST'])
 def batch_process():
@@ -128,7 +144,6 @@ def batch_process():
 
         for index, item in enumerate(items):
             # 100ms delay between each item
-            import time
             time.sleep(0.1)
 
             try:
@@ -169,8 +184,3 @@ def batch_process():
 
     except Exception as e:
         return jsonify({"error": f"Batch processing failed: {str(e)}"}), 500
-
-
-
-
-

@@ -1,5 +1,6 @@
 import os
 import pickle
+import logging
 from langchain_community.vectorstores import Chroma
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_groq import ChatGroq
@@ -12,9 +13,19 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Suppress noisy logs from sentence_transformers
+logging.getLogger("sentence_transformers").setLevel(logging.WARNING)
+
+# Pre-load embeddings model ONCE at startup instead of on every request
+print("Loading sentence-transformers model...")
+_embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+print("sentence-transformers model loaded successfully!")
+
+
 class RAGPipeline:
     def __init__(self):
-        self.embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+        # Use the pre-loaded embeddings instead of loading a new one each time
+        self.embeddings = _embeddings
         self.vectorstore = None
         self.llm = ChatGroq(
             api_key=os.getenv("GROQ_API_KEY"),
@@ -60,7 +71,6 @@ class RAGPipeline:
         if not self.vectorstore:
             return "No documents loaded yet. Please load documents first."
 
-        # Create the RAG chain using LCEL
         retriever = self.vectorstore.as_retriever(search_kwargs={"k": 3})
 
         template = """Use the following pieces of context to answer the question at the end.
@@ -89,5 +99,6 @@ class RAGPipeline:
         retriever = self.vectorstore.as_retriever(search_kwargs={"k": k})
         docs = retriever.get_relevant_documents(question)
         return [doc.page_content for doc in docs]
+
 
 rag_pipeline = RAGPipeline()

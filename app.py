@@ -3,7 +3,8 @@ from flask import Flask, Response, stream_with_context
 from flask_cors import CORS
 from dotenv import load_dotenv
 import os
-from routes.main_routes import main # <- Add this import
+from routes.main_routes import main 
+from services.rag_pipeline import rag_pipeline  # pre-loads model at startup# <- Add this import
 
 load_dotenv()
 
@@ -32,4 +33,5 @@ def stream():
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
+
 
