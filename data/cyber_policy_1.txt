@@ -1,0 +1,35 @@
+Cyber Insurance Policy - Digital Risk Protection
+This cyber insurance policy provides comprehensive coverage against cyber threats, data breaches, ransomware attacks, and online fraud for individuals and businesses.
+
+Key Benefits:
+- Data breach response costs up to Rs. 25 lakhs
+- Ransomware payment and recovery costs up to Rs. 10 lakhs
+- Business interruption due to cyber attack up to Rs. 15 lakhs
+- Cyber extortion and threat coverage
+- Legal and regulatory fines coverage
+- Public relations and reputation management costs
+- 24/7 cyber incident response team support
+
+Coverage Areas:
+- Unauthorized access to computer systems
+- Malware and virus attacks
+- Phishing and social engineering fraud
+- Online identity theft
+- Website defacement and downtime
+- Electronic data loss and restoration
+
+Exclusions:
+- Damage caused by own employees intentionally
+- Pre-existing vulnerabilities known before policy start
+- Loss due to unpatched or outdated software
+- Physical damage to hardware
+- Intellectual property disputes
+
+Incident Response:
+- Report cyber incident within 72 hours of discovery
+- Do not pay ransom without informing insurer
+- Preserve all digital evidence
+- Engage approved forensic investigators only
+
+Validity: 1 year from policy start date
+Premium: Rs. 12,000 per year (individual), Rs. 50,000 per year (business)

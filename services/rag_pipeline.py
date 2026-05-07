@@ -97,8 +97,9 @@ class RAGPipeline:
         if not self.vectorstore:
             return []
         retriever = self.vectorstore.as_retriever(search_kwargs={"k": k})
-        docs = retriever.get_relevant_documents(question)
+        docs=retriever.invoke(question)
         return [doc.page_content for doc in docs]
 
 
 rag_pipeline = RAGPipeline()
+
