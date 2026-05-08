@@ -1,0 +1,251 @@
+# AI Demo Script — Policy Lifecycle Manager
+# 8-Minute Demo Guide
+# Presenter: Rajatha
+# Audience: Mentor/Supervisor + Support Team
+
+==================================================
+BEFORE THE DEMO — Setup Checklist
+==================================================
+
+1. Open VS Code
+2. Open 2 terminals side by side
+3. Terminal 1 — Start Flask:
+   cd C:\Users\Rajatha\Desktop\Rajatha\campuspe-ai\internship_project\policy-lifecycle-manager
+   .\venv\Scripts\activate
+   python app.py
+
+4. Terminal 2 — Ready for commands (keep empty)
+5. Make sure you see:
+   ✅ Redis cache connected
+   sentence-transformers model loaded successfully!
+   * Running on http://127.0.0.1:5000
+
+6. Keep browser open at http://127.0.0.1:5000
+
+==================================================
+SECTION 1 — Introduction (0:00 - 1:00)
+==================================================
+
+WHAT TO SAY:
+"Hi everyone, I'm Rajatha. Over the past 3 weeks I've been working on
+the AI service layer of the Policy Lifecycle Manager.
+
+My contribution focuses on 3 main areas:
+- Building and optimizing AI-powered Flask API endpoints
+- Setting up background task processing using Celery and Redis
+- Seeding a ChromaDB knowledge base with 10 insurance policy documents
+
+Let me show you everything live."
+
+==================================================
+SECTION 2 — Show Flask is Running (1:00 - 1:30)
+==================================================
+
+WHAT TO DO:
+- Point to Terminal 1 showing Flask running
+- Open browser at http://127.0.0.1:5000
+
+WHAT TO SAY:
+"First, here's the Flask server running locally. When I open the
+browser you can see it's live and responding. The server also
+automatically connects to Redis cache on startup — you can see
+the confirmation message in the terminal."
+
+EXPECTED OUTPUT (browser):
+flask is running!
+
+==================================================
+SECTION 3 — Demo /generate-report (1:30 - 3:00)
+==================================================
+
+WHAT TO SAY:
+"The first endpoint I built is /generate-report. This takes insurance
+policy text and streams an AI-generated summary back in real time
+using Server-Sent Events. Watch how the response streams token
+by token — this gives a much better user experience than waiting
+for the full response."
+
+COMMAND TO RUN (Terminal 2):
+Invoke-RestMethod -Uri "http://127.0.0.1:5000/generate-report" -Method POST -ContentType "application/json" -Body '{"text": "This health insurance policy provides comprehensive coverage for hospitalization due to illness or accidental injury. The policy covers up to 10 lakhs per year including room charges, doctor fees, and medication costs. Pre-existing conditions are excluded for the first 3 years."}'
+
+EXPECTED OUTPUT:
+data: {"token": "This"}
+data: {"token": " health"}
+data: {"token": " insurance"}
+... (streaming tokens)
+data: {"done": true}
+
+WHAT TO SAY AFTER:
+"You can see each token arriving individually — this is real-time
+streaming powered by Groq's LLaMA 3.3 70B model. The done:true
+at the end signals the stream is complete."
+
+==================================================
+SECTION 4 — Demo /analyse-document (3:00 - 4:30)
+==================================================
+
+WHAT TO SAY:
+"The second endpoint is /analyse-document. This is more sophisticated
+— it analyzes a policy document and returns structured JSON with
+a summary, findings, severity levels, and direct quotes from the
+document. I also added Redis caching here — the first call hits
+the AI, but any repeat call with the same text returns instantly
+from cache."
+
+COMMAND TO RUN (Terminal 2):
+Invoke-RestMethod -Uri "http://127.0.0.1:5000/analyse-document" -Method POST -ContentType "application/json" -Body '{"text": "This health insurance policy provides comprehensive coverage for hospitalization due to illness or accidental injury. The policy covers up to 10 lakhs per year including room charges, doctor fees, and medication costs. Pre-existing conditions are excluded for the first 3 years."}' | ConvertTo-Json -Depth 10
+
+EXPECTED OUTPUT:
+{
+    "document_length": 278,
+    "document_summary": "Comprehensive health insurance policy with exclusions.",
+    "findings": [
+        {
+            "description": "The policy provides extensive coverage for various medical expenses.",
+            "severity": "low",
+            "source_text": "comprehensive coverage",
+            "title": "Comprehensive Coverage",
+            "type": "insight"
+        },
+        {
+            "description": "Policyholders with pre-existing conditions may not be covered for the first 3 years.",
+            "severity": "medium",
+            "source_text": "pre-existing conditions",
+            "title": "Pre-existing Conditions Excluded",
+            "type": "risk"
+        }
+    ],
+    "timestamp": "2026-05-07T12:26:10.974980+00:00"
+}
+
+WHAT TO SAY AFTER:
+"Notice the structured output — we get a summary, findings with
+types (insight or risk), severity levels from low to high, and
+direct quotes from the document as source text. This is exactly
+the kind of structured data the frontend needs to display
+professional policy analysis."
+
+SHOW REDIS CACHE (run same command again):
+"Now watch what happens when I call the same endpoint again with
+the same text..."
+
+WHAT TO SAY AFTER SECOND CALL:
+"It returns instantly — that's the Redis cache working. The result
+was stored for 1 hour so we don't hit the AI API unnecessarily.
+You can also see 'Cache hit' in the Flask terminal."
+
+==================================================
+SECTION 5 — Demo /batch-process (4:30 - 5:30)
+==================================================
+
+WHAT TO SAY:
+"The third endpoint is /batch-process. This accepts up to 20 policy
+items in a single request and processes each one with a 100ms delay
+to avoid rate limiting. It's perfect for bulk processing multiple
+policies at once."
+
+COMMAND TO RUN (Terminal 2):
+Invoke-RestMethod -Uri "http://127.0.0.1:5000/batch-process" -Method POST -ContentType "application/json" -Body '{"items": ["Health insurance policy covering hospitalization up to 10 lakhs per year.", "Life insurance policy providing coverage of 1 crore for the insured.", "Vehicle insurance covering third party liability and own damage."]}' | ConvertTo-Json -Depth 10
+
+EXPECTED OUTPUT:
+{
+    "results": [
+        {
+            "index": 0,
+            "result": "This health insurance policy provides coverage for hospitalization expenses up to 10 lakhs per year.",
+            "status": "success"
+        },
+        {
+            "index": 1,
+            "result": "This life insurance policy provides 1 crore coverage to the insured.",
+            "status": "success"
+        },
+        {
+            "index": 2,
+            "result": "This vehicle insurance covers third party liability and own damage.",
+            "status": "success"
+        }
+    ],
+    "timestamp": "2026-05-07T12:28:23.067542+00:00",
+    "total": 3
+}
+
+WHAT TO SAY AFTER:
+"Each item is processed individually and returns its own index,
+status, and result. If any item fails, only that item shows an
+error — the rest still succeed. This makes it robust for
+production use."
+
+==================================================
+SECTION 6 — Show ChromaDB Seeding (5:30 - 6:15)
+==================================================
+
+WHAT TO SAY:
+"I also set up a ChromaDB knowledge base for the RAG pipeline.
+I created 10 domain knowledge documents covering different insurance
+types and seeded them into ChromaDB. Let me show you the seed script."
+
+WHAT TO DO:
+- Open seed_chromadb.py in VS Code
+- Show the list of 10 documents
+- Show the data/ folder with all 10 txt files
+
+WHAT TO SAY:
+"We have 10 documents covering health, life, vehicle, home, travel,
+business, cyber insurance, plus claims process, policy exclusions,
+and renewal guides. These are loaded into ChromaDB so the RAG
+pipeline can answer questions based on real policy knowledge."
+
+==================================================
+SECTION 7 — Show Pytest Tests (6:15 - 7:15)
+==================================================
+
+WHAT TO SAY:
+"Finally, I wrote 15 pytest unit tests covering all 3 endpoints.
+All Groq API calls are mocked so the tests run instantly without
+hitting the real API. Let me run them live."
+
+COMMAND TO RUN (Terminal 2):
+pytest test_routes.py -v
+
+EXPECTED OUTPUT:
+test_routes.py::TestGenerateReport::test_streams_tokens_successfully PASSED
+test_routes.py::TestGenerateReport::test_missing_text_returns_400 PASSED
+test_routes.py::TestGenerateReport::test_empty_text_returns_400 PASSED
+test_routes.py::TestGenerateReport::test_groq_exception_yields_error_event PASSED
+test_routes.py::TestGenerateReport::test_sse_line_format_is_valid PASSED
+test_routes.py::TestAnalyseDocument::test_returns_valid_analysis_structure PASSED
+test_routes.py::TestAnalyseDocument::test_missing_text_returns_400 PASSED
+test_routes.py::TestAnalyseDocument::test_short_text_returns_400 PASSED
+test_routes.py::TestAnalyseDocument::test_invalid_json_from_llm_returns_500 PASSED
+test_routes.py::TestAnalyseDocument::test_groq_exception_returns_500 PASSED
+test_routes.py::TestBatchProcess::test_returns_results_array PASSED
+test_routes.py::TestBatchProcess::test_each_result_has_correct_structure PASSED
+test_routes.py::TestBatchProcess::test_more_than_20_items_returns_400 PASSED
+test_routes.py::TestBatchProcess::test_empty_items_returns_400 PASSED
+test_routes.py::TestBatchProcess::test_empty_item_in_list_returns_error_status PASSED
+======================== 15 passed in 0.44s =========================
+
+WHAT TO SAY AFTER:
+"15 out of 15 tests passing. The tests cover happy paths, error
+handling, edge cases, and format validation for all 3 endpoints."
+
+==================================================
+SECTION 8 — Wrap Up (7:15 - 8:00)
+==================================================
+
+WHAT TO SAY:
+"To summarize what I built over 3 weeks:
+
+Week 1 — Set up the Flask API structure and core endpoints
+Week 2 — Added Celery background tasks with Redis and wrote
+          15 pytest unit tests
+Week 3 — Optimized performance by pre-loading the
+          sentence-transformers model, reducing prompt length,
+          adding Redis caching, and seeding ChromaDB with
+          10 domain knowledge documents
+
+The AI service is fully tested, optimized, and demo-ready.
+Thank you!"
+
+
