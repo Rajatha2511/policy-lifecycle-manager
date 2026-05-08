@@ -22,6 +22,126 @@ except Exception:
     print("⚠️ Redis cache unavailable - running without cache")
 
 
+@main.route('/describe', methods=['POST'])
+def describe():
+    try:
+        data = request.get_json()
+        policy_input = data.get("policy_input", "").strip()
+
+        if not policy_input:
+            return jsonify({"error": "No policy_input provided"}), 400
+
+        if len(policy_input) < 20:
+            return jsonify({"error": "Input too short. Minimum 20 characters"}), 400
+
+        client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+
+        prompt = f"""You are an insurance policy expert. Describe the following insurance policy clearly and professionally.
+
+Policy: {policy_input}
+
+Return ONLY valid JSON in this exact format:
+{{
+    "policy_type": "type of insurance policy",
+    "description": "clear 2-3 sentence description of what this policy covers",
+    "key_benefits": ["benefit 1", "benefit 2", "benefit 3"],
+    "target_audience": "who this policy is best suited for",
+    "coverage_summary": "one sentence summary of coverage"
+}}
+
+Return ONLY JSON, no other text."""
+
+        completion = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+            response_format={"type": "json_object"}
+        )
+
+        result = json.loads(completion.choices[0].message.content)
+
+        response = {
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "policy_input": policy_input,
+            "policy_type": result.get("policy_type", ""),
+            "description": result.get("description", ""),
+            "key_benefits": result.get("key_benefits", []),
+            "target_audience": result.get("target_audience", ""),
+            "coverage_summary": result.get("coverage_summary", "")
+        }
+
+        return jsonify(response), 200
+
+    except json.JSONDecodeError:
+        return jsonify({"error": "LLM returned invalid JSON"}), 500
+    except Exception as e:
+        return jsonify({"error": f"Description failed: {str(e)}"}), 500
+
+
+@main.route('/recommend', methods=['POST'])
+def recommend():
+    try:
+        data = request.get_json()
+        policy_input = data.get("policy_input", "").strip()
+
+        if not policy_input:
+            return jsonify({"error": "No policy_input provided"}), 400
+
+        if len(policy_input) < 20:
+            return jsonify({"error": "Input too short. Minimum 20 characters"}), 400
+
+        client = Groq(api_key=os.getenv("GROQ_API_KEY"))
+
+        prompt = f"""You are an insurance policy advisor. Based on the following policy input, provide exactly 3 actionable recommendations.
+
+Policy: {policy_input}
+
+Return ONLY valid JSON in this exact format:
+{{
+    "recommendations": [
+        {{
+            "action_type": "type of action (e.g. upgrade, add_rider, review, renew)",
+            "description": "clear description of what to do and why",
+            "priority": "high/medium/low"
+        }},
+        {{
+            "action_type": "type of action",
+            "description": "clear description of what to do and why",
+            "priority": "high/medium/low"
+        }},
+        {{
+            "action_type": "type of action",
+            "description": "clear description of what to do and why",
+            "priority": "high/medium/low"
+        }}
+    ]
+}}
+
+Return ONLY JSON, no other text."""
+
+        completion = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+            response_format={"type": "json_object"}
+        )
+
+        result = json.loads(completion.choices[0].message.content)
+
+        response = {
+            "generated_at": datetime.now(timezone.utc).isoformat(),
+            "policy_input": policy_input,
+            "recommendations": result.get("recommendations", [])
+        }
+
+        return jsonify(response), 200
+
+    except json.JSONDecodeError:
+        return jsonify({"error": "LLM returned invalid JSON"}), 500
+    except Exception as e:
+        return jsonify({"error": f"Recommendations failed: {str(e)}"}), 500
+
+
 @main.route('/generate-report', methods=['POST'])
 def generate_report():
     data = request.get_json()
@@ -131,11 +251,9 @@ def batch_process():
         data = request.get_json()
         items = data.get("items", [])
 
-        # Validate items exists and is a list
         if not items or not isinstance(items, list):
             return jsonify({"error": "No items provided"}), 400
 
-        # Validate max 20 items
         if len(items) > 20:
             return jsonify({"error": "Maximum 20 items allowed"}), 400
 
@@ -143,7 +261,6 @@ def batch_process():
         results = []
 
         for index, item in enumerate(items):
-            # 100ms delay between each item
             time.sleep(0.1)
 
             try:
@@ -184,3 +301,4 @@ def batch_process():
 
     except Exception as e:
         return jsonify({"error": f"Batch processing failed: {str(e)}"}), 500
+
