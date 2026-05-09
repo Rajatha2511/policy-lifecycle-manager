@@ -302,3 +302,21 @@ def batch_process():
     except Exception as e:
         return jsonify({"error": f"Batch processing failed: {str(e)}"}), 500
 
+
+
+@main.route('/query', methods=['POST'])
+def query():
+    try:
+        data = request.get_json()
+        question = data.get('question', '').strip()
+        if not question:
+            return jsonify({'error': 'No question provided'}), 400
+        if len(question) < 10:
+            return jsonify({'error': 'Question too short. Minimum 10 characters'}), 400
+        from services.rag_pipeline import rag_pipeline
+        answer = rag_pipeline.query(question)
+        sources = rag_pipeline.get_relevant_documents(question, k=3)
+        response = {'generated_at': datetime.now(timezone.utc).isoformat(), 'question': question, 'answer': answer, 'sources_used': len(sources), 'source_previews': [s[:100] + '...' for s in sources]}
+        return jsonify(response), 200
+    except Exception as e:
+        return jsonify({'error': f'Query failed: {str(e)}'}), 500

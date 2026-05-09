@@ -11,7 +11,21 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-app.register_blueprint(main)  # <- Add this line to register your routes
+app.register_blueprint(main) 
+if os.path.exists("data"):
+    rag_pipeline.load_documents_from_files([
+        "data/health_policy_1.txt",
+        "data/life_policy_1.txt",
+        "data/vehicle_policy_1.txt",
+        "data/home_policy_1.txt",
+        "data/travel_policy_1.txt",
+        "data/business_policy_1.txt",
+        "data/claims_process_1.txt",
+        "data/policy_exclusions_1.txt",
+        "data/policy_renewal_1.txt",
+        "data/cyber_policy_1.txt",
+    ])
+    print("✅ ChromaDB documents loaded!") # <- Add this line to register your routes
 
 @app.route('/')
 def home():
@@ -33,5 +47,6 @@ def stream():
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
+
 
 
